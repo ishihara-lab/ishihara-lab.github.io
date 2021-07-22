@@ -5,6 +5,17 @@ layout: default
 情報工学，特にデータ工学や情報セキュリティに関する
 研究・教育に取り組んでいます．
 
+# メンバー
+
+* 教員：石原 靖哲（いしはら やすのり）
+* 学生
+  - M2：1名
+  - M1：1名
+  - B4：12名
+  - B3：6名
+
+<!--
+
 Text can be **bold**, _italic_, or ~~strikethrough~~.
 
 [Link to another page](./another-page.html).
@@ -124,3 +135,4 @@ Long, single-line code blocks should not wrap. They should horizontally scroll i
 ```
 The final element.
 ```
+-->
