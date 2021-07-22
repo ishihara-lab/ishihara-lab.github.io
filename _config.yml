@@ -20,8 +20,10 @@
 
 title: 石原研究室
 # email: your-email@example.com
-description: >- # this means to ignore newlines until "baseurl:"
-  南山大学 理工学部 電子情報工学科／機械電子制御工学科
+# description: >- # this means to ignore newlines until "baseurl:"
+description:
+  南山大学 理工学部
+  電子情報工学科／機械電子制御工学科
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 # twitter_username: jekyllrb
