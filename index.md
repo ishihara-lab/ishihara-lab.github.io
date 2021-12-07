@@ -8,7 +8,8 @@ layout: default
 # メンバー
 
 * 教員：石原 靖哲（いしはら やすのり）
-  [研究業績](https://porta.nanzan-u.ac.jp/research/view?l=ja&u=103810)
+  [（研究業績）](https://porta.nanzan-u.ac.jp/research/view?l=ja&u=103810)
+  [（researchmap）](https://researchmap.jp/yasunori-ishihara)
 
 * 学生
   - M2：1名
