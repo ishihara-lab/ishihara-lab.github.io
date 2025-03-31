@@ -12,10 +12,10 @@ layout: default
   [【researchmap】](https://researchmap.jp/yasunori-ishihara)
 
 * 学生
-  - M2：2名
-  - M1：1名
-  - B4：12名
-  - B3：9名
+  - M2：3名
+  - M1：2名
+  - B4：11名
+  - B3：10名
 
 <!--
 
