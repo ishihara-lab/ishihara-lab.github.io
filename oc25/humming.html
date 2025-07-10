@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(7,4)ハミング符号 誤り訂正アニメーション（定義交換版）</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .bit {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: default;
+            border: 2px solid;
+        }
+        .bit-info { background-color: #e0f2fe; border-color: #38bdf8; color: #0c4a6e; }
+        .bit-parity { background-color: #dcfce7; border-color: #4ade80; color: #15803d; }
+        .bit-empty { background-color: #f3f4f6; border-color: #d1d5db; }
+        .bit-label {
+            position: absolute;
+            top: -25px;
+            font-size: 0.8rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .bit-pos-label {
+            position: absolute;
+            bottom: -25px;
+            font-size: 0.8rem;
+            color: #9ca3b0;
+            font-weight: 500;
+        }
+        .bit.highlight-p1 { box-shadow: 0 0 15px 3px #f87171; }
+        .bit.highlight-p2 { box-shadow: 0 0 15px 3px #60a5fa; }
+        .bit.highlight-p3 { box-shadow: 0 0 15px 3px #34d399; }
+        .bit.error { background-color: #fecaca; border-color: #f87171; color: #991b1b; animation: blink 1s infinite; }
+        .bit.corrected { background-color: #fde68a; border-color: #facc15; }
+        .bit-clickable { cursor: pointer !important; }
+
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
+        .op-line {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #9ca3b0;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .calculation-box {
+            min-height: 60px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900"> (7,4)ハミング符号 誤り訂正アニメーション</h1>
+            <p class="mt-2 text-lg text-gray-600">1ビットの誤りがどのように検出・訂正されるかを見てみましょう。</p>
+        </header>
+
+        <div class="space-y-8">
+            <section id="step1" class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <h2 class="text-2xl font-bold mb-4 flex items-center"><span class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">1</span>情報ビット入力</h2>
+                <p class="text-gray-600 mb-6">訂正したい4ビットのデータ（情報ビット）を入力してください。</p>
+                <div id="info-bits-input" class="flex justify-center items-center gap-4 sm:gap-6">
+                    </div>
+                <div class="text-center mt-6">
+                    <button id="encode-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors text-lg shadow-sm hover:shadow-md">
+                        符号化する
+                    </button>
+                </div>
+            </section>
+
+            <section id="step2" class="bg-white p-6 rounded-xl shadow-md border border-gray-200 hidden">
+                <h2 class="text-2xl font-bold mb-4 flex items-center"><span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">2</span>符号化 (パリティ計算)</h2>
+                <div id="parity-calc-display" class="space-y-4 text-center">
+                    </div>
+                <p id="encoding-done-msg" class="text-center text-green-700 font-semibold mt-4 text-lg hidden"></p>
+            </section>
+
+            <section id="step3" class="bg-white p-6 rounded-xl shadow-md border border-gray-200 hidden">
+                <h2 class="text-2xl font-bold mb-4 flex items-center"><span class="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">3</span>送信符号 (誤り注入)</h2>
+                <p class="text-gray-600 mb-6 text-center">生成された7ビットの符号です。いずれかのビットを1回クリックして、1ビット誤りを発生させてください。</p>
+                <div id="hamming-code-display" class="flex justify-center items-center gap-2 sm:gap-3 flex-wrap">
+                    </div>
+                 <p id="error-injected-msg" class="text-center text-red-700 font-semibold mt-4 text-lg hidden"></p>
+            </section>
+
+            <section id="step4" class="bg-white p-6 rounded-xl shadow-md border border-gray-200 hidden">
+                <h2 class="text-2xl font-bold mb-4 flex items-center"><span class="bg-yellow-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">4</span>誤り検出と訂正</h2>
+                <div id="syndrome-calc-display" class="space-y-4 text-center">
+                    </div>
+                <div id="correction-display" class="text-center mt-6 hidden">
+                    </div>
+            </section>
+            
+            <section id="step5" class="bg-white p-6 rounded-xl shadow-md border border-gray-200 hidden">
+                <h2 class="text-2xl font-bold mb-4 flex items-center"><span class="bg-indigo-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">5</span>結果</h2>
+                <div id="result-display" class="text-center space-y-4">
+                    </div>
+            </section>
+
+        </div>
+
+        <div class="text-center mt-8">
+            <button id="reset-btn" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600 transition-colors text-lg shadow-sm hover:shadow-md">
+                リセット
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const infoBitsInput = document.getElementById('info-bits-input');
+            const encodeBtn = document.getElementById('encode-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const step2 = document.getElementById('step2');
+            const parityCalcDisplay = document.getElementById('parity-calc-display');
+            const encodingDoneMsg = document.getElementById('encoding-done-msg');
+            const step3 = document.getElementById('step3');
+            const hammingCodeDisplay = document.getElementById('hamming-code-display');
+            const errorInjectedMsg = document.getElementById('error-injected-msg');
+            const step4 = document.getElementById('step4');
+            const syndromeCalcDisplay = document.getElementById('syndrome-calc-display');
+            const correctionDisplay = document.getElementById('correction-display');
+            const step5 = document.getElementById('step5');
+            const resultDisplay = document.getElementById('result-display');
+
+            // --- State ---
+            let infoBits = [1, 0, 1, 0]; // d1, d2, d3, d4
+            let hammingCode = []; // d1, d2, d3, d4, p1, p2, p3
+            let receivedCode = [];
+            let errorPosition = -1;
+            let isErrorInjected = false;
+
+            // --- Bit Definitions (Systematic Code with P1/P3 definitions swapped) ---
+            // Position: 1  2  3  4  5  6  7
+            // Bit:      d1 d2 d3 d4 p1 p2 p3
+            const parityCalcMap = {
+                p1: { deps: [2, 3, 4], label: 'P1', pos: 5 }, // p1 = d2+d3+d4 (New Def)
+                p2: { deps: [1, 3, 4], label: 'P2', pos: 6 }, // p2 = d1+d3+d4 (Same)
+                p3: { deps: [1, 2, 4], label: 'P3', pos: 7 }  // p3 = d1+d2+d4 (New Def)
+            };
+            const syndromeCalcMap = {
+                s1: { deps: [2, 3, 4, 5], label: 'S1' }, // s1 = d2+d3+d4+p1
+                s2: { deps: [1, 3, 4, 6], label: 'S2' }, // s2 = d1+d3+d4+p2
+                s3: { deps: [1, 2, 4, 7], label: 'S3' }  // s3 = d1+d2+d4+p3
+            };
+            // Maps syndrome (s1,s2,s3) to the 1-based error position
+            const syndromeToErrorPos = {
+                "000": 0, "011": 1, "101": 2, "110": 3, "111": 4, "100": 5, "010": 6, "001": 7
+            };
+
+            // --- Functions ---
+            const createBitElement = (value, label, posLabel, type, isClickable = false) => {
+                const bitDiv = document.createElement('div');
+                bitDiv.className = `bit bit-${type} relative`;
+                if(isClickable) bitDiv.classList.add('bit-clickable');
+                
+                const valueSpan = document.createElement('span');
+                valueSpan.textContent = value;
+                bitDiv.appendChild(valueSpan);
+
+                const labelSpan = document.createElement('span');
+                labelSpan.className = 'bit-label';
+                labelSpan.textContent = label;
+                bitDiv.appendChild(labelSpan);
+                
+                if (posLabel) {
+                    const posLabelSpan = document.createElement('span');
+                    posLabelSpan.className = 'bit-pos-label';
+                    posLabelSpan.textContent = `(H${posLabel})`;
+                    bitDiv.appendChild(posLabelSpan);
+                }
+
+                bitDiv.dataset.value = value;
+                return bitDiv;
+            };
+            
+            const createToggleBitElement = (label, index) => {
+                const container = document.createElement('div');
+                container.className = 'flex flex-col items-center';
+
+                const bitDiv = createBitElement(infoBits[index], label, index + 1, 'info', true);
+                bitDiv.addEventListener('click', () => {
+                    if (step2.classList.contains('hidden')) {
+                        const currentValue = parseInt(bitDiv.dataset.value);
+                        const newValue = 1 - currentValue;
+                        infoBits[index] = newValue;
+                        bitDiv.dataset.value = newValue;
+                        bitDiv.querySelector('span').textContent = newValue;
+                    }
+                });
+                
+                const posLabelSpan = document.createElement('span');
+                posLabelSpan.className = 'mt-10 text-sm text-gray-500';
+                posLabelSpan.textContent = `(d${index + 1})`;
+                
+                container.appendChild(bitDiv);
+                container.appendChild(posLabelSpan);
+                return container;
+            };
+
+            const renderInputBits = () => {
+                infoBitsInput.innerHTML = '';
+                ['D1', 'D2', 'D3', 'D4'].forEach((label, i) => {
+                    infoBitsInput.appendChild(createToggleBitElement(label, i));
+                });
+            };
+
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            const calculateParity = (bits) => bits.reduce((acc, bit) => acc ^ bit, 0);
+
+            const animateParityCalculation = async (p_label, p_pos, checkDataIndices, highlightIndex) => {
+                const bitsToXOR = checkDataIndices.map(i => infoBits[i - 1]);
+                const result = calculateParity(bitsToXOR);
+                
+                const calcBox = document.createElement('div');
+                calcBox.className = 'p-4 border rounded-lg bg-gray-50 calculation-box flex items-center justify-center flex-wrap gap-2 fade-in';
+                parityCalcDisplay.appendChild(calcBox);
+                await sleep(500);
+
+                const pBit = createBitElement('?', p_label, p_pos, 'parity');
+                calcBox.appendChild(pBit);
+                
+                const equals = document.createElement('span');
+                equals.className = 'text-2xl font-bold mx-2';
+                equals.textContent = '=';
+                calcBox.appendChild(equals);
+
+                const highlightClass = `highlight-p${highlightIndex}`;
+
+                checkDataIndices.forEach((dataIdx, i) => {
+                    const dataBitLabel = `D${dataIdx}`;
+                    const bitValue = infoBits[dataIdx - 1];
+                    const bit = createBitElement(bitValue, dataBitLabel, dataIdx, 'info');
+                    bit.classList.add(highlightClass);
+                    calcBox.appendChild(bit);
+                    if (i < checkDataIndices.length - 1) {
+                        const xor = document.createElement('span');
+                        xor.className = 'text-2xl font-bold mx-1 text-gray-400';
+                        xor.textContent = '⊕';
+                        calcBox.appendChild(xor);
+                    }
+                });
+                
+                await sleep(1500);
+                
+                pBit.querySelector('span').textContent = result;
+                pBit.dataset.value = result;
+                pBit.classList.add('corrected');
+                
+                await sleep(500);
+                return result;
+            };
+            
+            const handleEncode = async () => {
+                encodeBtn.disabled = true;
+                encodeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                step2.classList.remove('hidden');
+                parityCalcDisplay.innerHTML = '';
+
+                // Calculate p1, p2, p3 based on the new definitions
+                const p1 = await animateParityCalculation(parityCalcMap.p1.label, parityCalcMap.p1.pos, parityCalcMap.p1.deps, 1);
+                await sleep(500);
+                const p2 = await animateParityCalculation(parityCalcMap.p2.label, parityCalcMap.p2.pos, parityCalcMap.p2.deps, 2);
+                await sleep(500);
+                const p3 = await animateParityCalculation(parityCalcMap.p3.label, parityCalcMap.p3.pos, parityCalcMap.p3.deps, 3);
+                
+                // Assemble the code in D...P1,P2,P3 order
+                hammingCode = [...infoBits, p1, p2, p3];
+                
+                await sleep(500);
+                encodingDoneMsg.textContent = '✓ 符号化が完了しました！';
+                encodingDoneMsg.classList.remove('hidden');
+
+                renderHammingCode();
+                step3.classList.remove('hidden');
+            };
+
+            const renderHammingCode = () => {
+                hammingCodeDisplay.innerHTML = '';
+                const labels = ['D1', 'D2', 'D3', 'D4', 'P1', 'P2', 'P3'];
+                const types = ['info', 'info', 'info', 'info', 'parity', 'parity', 'parity'];
+                
+                hammingCode.forEach((bit, i) => {
+                    const bitEl = createBitElement(bit, labels[i], i + 1, types[i], true);
+                    bitEl.dataset.index = i;
+                    bitEl.addEventListener('click', handleBitClick);
+                    hammingCodeDisplay.appendChild(bitEl);
+                });
+            };
+
+            const handleBitClick = (e) => {
+                if(isErrorInjected) return;
+                isErrorInjected = true;
+
+                const bitEl = e.currentTarget;
+                const index = parseInt(bitEl.dataset.index);
+                
+                receivedCode = [...hammingCode];
+                receivedCode[index] = 1 - receivedCode[index]; // Flip the bit
+                errorPosition = index;
+
+                bitEl.dataset.value = receivedCode[index];
+                bitEl.querySelector('span').textContent = receivedCode[index];
+                bitEl.classList.add('error');
+                
+                document.querySelectorAll('#hamming-code-display .bit').forEach(b => b.classList.remove('bit-clickable'));
+
+                errorInjectedMsg.textContent = `！ H${index + 1}に誤りが注入されました。`;
+                errorInjectedMsg.classList.remove('hidden');
+
+                step4.classList.remove('hidden');
+                handleDecode();
+            };
+            
+            const animateSyndromeCalculation = async (s_label, checkIndices, highlightIndex) => {
+                const bitsToXOR = checkIndices.map(i => receivedCode[i - 1]);
+                const result = calculateParity(bitsToXOR);
+
+                const calcBox = document.createElement('div');
+                calcBox.className = 'p-4 border rounded-lg bg-gray-50 calculation-box flex items-center justify-center flex-wrap gap-2 fade-in';
+                syndromeCalcDisplay.appendChild(calcBox);
+                await sleep(500);
+
+                const sBit = createBitElement('?', s_label, '', 'parity');
+                calcBox.appendChild(sBit);
+
+                const equals = document.createElement('span');
+                equals.className = 'text-2xl font-bold mx-2';
+                equals.textContent = '=';
+                calcBox.appendChild(equals);
+
+                const highlightClass = `highlight-p${highlightIndex}`;
+                const labels = ['D1', 'D2', 'D3', 'D4', 'P1', 'P2', 'P3'];
+                const types = ['info', 'info', 'info', 'info', 'parity', 'parity', 'parity'];
+
+                checkIndices.forEach((pos, i) => {
+                    const bitValue = receivedCode[pos - 1];
+                    const bit = createBitElement(bitValue, labels[pos-1], pos, types[pos-1]);
+                    bit.classList.add(highlightClass);
+                    if (pos - 1 === errorPosition) {
+                        bit.classList.add('error');
+                    }
+                    calcBox.appendChild(bit);
+
+                    if (i < checkIndices.length - 1) {
+                        const xor = document.createElement('span');
+                        xor.className = 'text-2xl font-bold mx-1 text-gray-400';
+                        xor.textContent = '⊕';
+                        calcBox.appendChild(xor);
+                    }
+                });
+
+                await sleep(1500);
+
+                sBit.querySelector('span').textContent = result;
+                sBit.dataset.value = result;
+                sBit.classList.add('corrected');
+
+                await sleep(500);
+                return result;
+            };
+
+            const handleDecode = async () => {
+                syndromeCalcDisplay.innerHTML = '';
+                await sleep(1000);
+
+                const s1 = await animateSyndromeCalculation(syndromeCalcMap.s1.label, syndromeCalcMap.s1.deps, 1);
+                await sleep(500);
+                const s2 = await animateSyndromeCalculation(syndromeCalcMap.s2.label, syndromeCalcMap.s2.deps, 2);
+                await sleep(500);
+                const s3 = await animateSyndromeCalculation(syndromeCalcMap.s3.label, syndromeCalcMap.s3.deps, 3);
+                
+                const syndromeString = `${s1}${s2}${s3}`;
+                const errorLocation = syndromeToErrorPos[syndromeString] || 0;
+                
+                await sleep(1000);
+                correctionDisplay.classList.remove('hidden');
+                correctionDisplay.innerHTML = `
+                    <p class="text-lg">シンドローム (S1, S2, S3) = (${s1}, ${s2}, ${s3})</p>
+                    <p class="text-xl font-bold mt-4 text-red-600">
+                        ${errorLocation > 0 ? `H${errorLocation} の位置に誤りがあります！` : '誤りは検出されませんでした。'}
+                    </p>
+                `;
+                
+                await sleep(2000);
+                
+                const correctedCode = [...receivedCode];
+                if (errorLocation > 0) {
+                    correctedCode[errorLocation - 1] = 1 - correctedCode[errorLocation - 1];
+                }
+
+                step5.classList.remove('hidden');
+                
+                const receivedBitsHTML = receivedCode.map((b, i) => {
+                    const type = i < 4 ? 'bit-info' : 'bit-parity';
+                    const errorClass = i === errorLocation - 1 ? 'error' : '';
+                    return `<div class="bit ${errorClass} ${type}">${b}</div>`;
+                }).join('');
+
+                const correctedBitsHTML = correctedCode.map((b, i) => {
+                    const type = i < 4 ? 'bit-info' : 'bit-parity';
+                    const correctedClass = i === errorLocation - 1 ? 'corrected' : '';
+                    return `<div class="bit ${correctedClass} ${type}">${b}</div>`;
+                }).join('');
+
+                const extractedDataHTML = correctedCode.slice(0, 4).map(b => 
+                    `<div class="bit bit-info">${b}</div>`
+                ).join('');
+
+                resultDisplay.innerHTML = `
+                    <div class="mb-4">
+                        <p class="text-gray-600">受信符号 (誤りあり):</p>
+                        <div class="flex justify-center items-center gap-2 sm:gap-3 flex-wrap mt-2">
+                            ${receivedBitsHTML}
+                        </div>
+                    </div>
+                     <div class="my-4 text-2xl font-bold text-indigo-600">↓ 訂正 ↓</div>
+                    <div class="mb-4">
+                        <p class="text-gray-600">訂正後符号:</p>
+                        <div class="flex justify-center items-center gap-2 sm:gap-3 flex-wrap mt-2">
+                            ${correctedBitsHTML}
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-4 border-t">
+                        <p class="text-gray-600">復元された情報ビット (D1, D2, D3, D4):</p>
+                        <div class="flex justify-center items-center gap-2 sm:gap-3 flex-wrap mt-2">
+                            ${extractedDataHTML}
+                        </div>
+                    </div>
+                `;
+            };
+
+            const reset = () => {
+                infoBits = [1, 0, 1, 0];
+                hammingCode = [];
+                receivedCode = [];
+                errorPosition = -1;
+                isErrorInjected = false;
+
+                step2.classList.add('hidden');
+                step3.classList.add('hidden');
+                step4.classList.add('hidden');
+                step5.classList.add('hidden');
+                
+                parityCalcDisplay.innerHTML = '';
+                encodingDoneMsg.classList.add('hidden');
+                hammingCodeDisplay.innerHTML = '';
+                errorInjectedMsg.classList.add('hidden');
+                syndromeCalcDisplay.innerHTML = '';
+                correctionDisplay.classList.add('hidden');
+                resultDisplay.innerHTML = '';
+
+                encodeBtn.disabled = false;
+                encodeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                renderInputBits();
+            };
+
+            // --- Initial Setup ---
+            renderInputBits();
+            encodeBtn.addEventListener('click', handleEncode);
+            resetBtn.addEventListener('click', reset);
+        });
+    </script>
+
+</body>
+</html>
