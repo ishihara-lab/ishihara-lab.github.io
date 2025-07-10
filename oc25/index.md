@@ -2,11 +2,15 @@
 layout: default
 ---
 
-# 南山大学オープンキャンパス2025
+# オープンキャンパス2025
 
-* 模擬授業教員：石原 靖哲（いしはら やすのり）
-  [【研究業績】](https://porta.nanzan-u.ac.jp/research/view?l=ja&u=103810)
-  [【researchmap】](https://researchmap.jp/yasunori-ishihara)
+* 模擬授業「情報の表現を究めよう～情報工学のパズルチックな側面～」
+  - ソーティング（並べ替え）アルゴリズムのアニメーション（Geminiにより生成）
+    - [バブルソート](./bubble.html)
+    - [挿入ソート](./insertion.html)
+    - [バケツソート](./bucket.html)
+    - [マージソート](./merge.html)
+
 
 <!--
 
