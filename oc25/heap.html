@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ヒープソートのアニメーション</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bar-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 250px;
+            padding: 20px;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        .bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 400ms ease-in-out, left 400ms ease-in-out;
+            position: absolute;
+            bottom: 20px;
+        }
+        .bar {
+            width: 50px;
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-radius: 6px 6px 0 0;
+            transition: background-color 400ms, height 400ms;
+            border: 3px solid transparent;
+        }
+        .bar-label {
+            margin-top: 8px;
+            font-weight: 500;
+            color: #4b5563; /* gray-600 */
+        }
+        .tree-container {
+            position: relative;
+            height: 250px;
+            margin-top: 20px;
+        }
+        .node {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            background-color: #dbeafe; /* blue-100 */
+            color: #1e40af; /* blue-800 */
+            border: 2px solid #93c5fd; /* blue-300 */
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            transition: all 400ms ease-in-out;
+            z-index: 1; /* Ensure nodes are above lines */
+        }
+        .line {
+            position: absolute;
+            background-color: #9ca3af; /* gray-400 */
+            height: 2px;
+            transform-origin: 0 0;
+            z-index: 0; /* Ensure lines are behind nodes */
+        }
+        .parent { border-color: #f59e0b; }
+        .child { border-color: #a855f7; }
+        .swapping { background-color: #ef4444; }
+        .sorted { background-color: #22c55e; border-color: transparent !important; }
+        .heap-boundary {
+             position: absolute;
+             height: 100%;
+             top: 0;
+             border-right: 3px dashed #ef4444;
+             transition: left 400ms ease-in-out;
+        }
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+             background-color: #1f2937;
+             color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #374151;
+        }
+        .btn:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #f3f4f6;
+            border-radius: 0.5rem;
+            min-height: 5rem;
+            text-align: center;
+            font-family: 'Meiryo', sans-serif;
+            font-size: 1.1rem;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div class="container mx-auto max-w-5xl bg-white rounded-lg shadow-xl p-6">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">ヒープソートのアニメーション</h1>
+        <p class="text-center text-gray-500 mb-4">配列と、それを木構造で表現したヒープ</p>
+        
+        <div id="bar-container" class="bar-container">
+            <div id="heap-boundary" class="heap-boundary hidden"></div>
+        </div>
+        <div id="tree-container" class="tree-container"></div>
+        
+        <div id="controls" class="flex justify-center gap-4 mt-6">
+            <button id="start-btn" class="btn btn-primary">開始</button>
+            <button id="new-array-btn" class="btn btn-primary">新しい配列</button>
+        </div>
+
+        <div class="status-box">
+            <p id="status-text">「開始」ボタンを押してソートを開始します。</p>
+        </div>
+    </div>
+
+    <script>
+        const barContainer = document.getElementById('bar-container');
+        const treeContainer = document.getElementById('tree-container');
+        const heapBoundary = document.getElementById('heap-boundary');
+        const startBtn = document.getElementById('start-btn');
+        const newArrayBtn = document.getElementById('new-array-btn');
+        const statusText = document.getElementById('status-text');
+
+        let initialArray = [];
+        let currentArray = [];
+        let barWrappers = [];
+        let treeNodes = [];
+        let isSorting = false;
+
+        const ANIMATION_SPEED_MS = 800;
+        const SWAP_SPEED_MS = 500;
+
+        function generateRandomIntArray() {
+            const arr = [];
+            while (arr.length < 10) {
+                const r = Math.floor(Math.random() * 99) + 1;
+                if (arr.indexOf(r) === -1) arr.push(r);
+            }
+            return arr;
+        }
+
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        function positionItems() {
+            const containerWidth = barContainer.offsetWidth;
+            const totalBarWidth = barWrappers.length * 50;
+            const totalGapWidth = (barWrappers.length - 1) * 15;
+            const totalWidth = totalBarWidth + totalGapWidth;
+            const startOffset = (containerWidth - totalWidth) / 2;
+            barWrappers.forEach((wrapper, index) => {
+                wrapper.style.left = `${startOffset + index * (50 + 15)}px`;
+            });
+        }
+
+        function createVisuals() {
+            barContainer.querySelectorAll('.bar-wrapper').forEach(el => el.remove());
+            treeContainer.innerHTML = '';
+            barWrappers = [];
+            treeNodes = [];
+
+            currentArray.forEach((value, index) => {
+                // Create bars
+                const barWrapper = document.createElement('div');
+                barWrapper.classList.add('bar-wrapper');
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${value * 2.5 + 20}px`;
+                bar.textContent = value;
+                const label = document.createElement('div');
+                label.classList.add('bar-label');
+                label.textContent = `[${index}]`;
+                barWrapper.appendChild(bar);
+                barWrapper.appendChild(label);
+                barContainer.appendChild(barWrapper);
+                barWrappers.push(barWrapper);
+
+                // Create tree nodes
+                const node = document.createElement('div');
+                node.classList.add('node');
+                node.textContent = value;
+                treeContainer.appendChild(node);
+                treeNodes.push(node);
+            });
+            positionItems();
+            drawTree();
+        }
+        
+        function drawTree() {
+            // Clear previous lines
+            treeContainer.querySelectorAll('.line').forEach(line => line.remove());
+
+            const levels = [[0], [1, 2], [3, 4, 5, 6], [7, 8, 9]];
+            const containerWidth = treeContainer.offsetWidth;
+            const levelHeights = [20, 90, 160, 230];
+
+            const nodePositions = [];
+
+            // First pass: calculate all node positions based on an ideal full tree
+            levels.forEach((level, levelIndex) => {
+                const y = levelHeights[levelIndex];
+                level.forEach((nodeIndex) => {
+                    if (nodeIndex < currentArray.length) {
+                        const totalNodesInFullLevel = Math.pow(2, levelIndex);
+                        const nodeRankInFullLevel = nodeIndex - (totalNodesInFullLevel - 1);
+                        const x = (containerWidth / (totalNodesInFullLevel + 1)) * (nodeRankInFullLevel + 1);
+
+                        if(treeNodes[nodeIndex]) {
+                            treeNodes[nodeIndex].style.left = `${x - 22}px`;
+                            treeNodes[nodeIndex].style.top = `${y - 22}px`;
+                            nodePositions[nodeIndex] = { x, y };
+                        }
+                    }
+                });
+            });
+
+            // Second pass: draw lines using calculated positions
+            treeNodes.forEach((node, nodeIndex) => {
+                if (nodeIndex > 0) {
+                    const parentIndex = Math.floor((nodeIndex - 1) / 2);
+                    if (nodePositions[nodeIndex] && nodePositions[parentIndex]) {
+                        const childPos = nodePositions[nodeIndex];
+                        const parentPos = nodePositions[parentIndex];
+                        
+                        const dx = childPos.x - parentPos.x;
+                        const dy = childPos.y - parentPos.y;
+                        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        const line = document.createElement('div');
+                        line.classList.add('line');
+                        line.style.width = `${distance}px`;
+                        line.style.left = `${parentPos.x}px`;
+                        line.style.top = `${parentPos.y}px`;
+                        line.style.transform = `rotate(${angle}deg)`;
+                        treeContainer.appendChild(line);
+                    }
+                }
+            });
+        }
+
+        async function swap(i, j) {
+            statusText.innerHTML = `<strong>${currentArray[i]}</strong> と <strong>${currentArray[j]}</strong> を交換します。`;
+            
+            const barWrapper1 = barWrappers[i];
+            const barWrapper2 = barWrappers[j];
+            const bar1 = barWrapper1.querySelector('.bar');
+            const bar2 = barWrapper2.querySelector('.bar');
+            const node1 = treeNodes[i];
+            const node2 = treeNodes[j];
+
+            [bar1, bar2, node1, node2].forEach(el => el.classList.add('swapping'));
+            await sleep(ANIMATION_SPEED_MS);
+
+            // Animate bars
+            const pos1_left = barWrapper1.style.left;
+            const pos2_left = barWrapper2.style.left;
+            barWrapper1.style.transform = `translateX(${parseInt(pos2_left) - parseInt(pos1_left)}px)`;
+            barWrapper2.style.transform = `translateX(${parseInt(pos1_left) - parseInt(pos2_left)}px)`;
+            
+            // Animate tree nodes
+            const node1_left = node1.style.left;
+            const node1_top = node1.style.top;
+            node1.style.left = node2.style.left;
+            node1.style.top = node2.style.top;
+            node2.style.left = node1_left;
+            node2.style.top = node1_top;
+            
+            await sleep(SWAP_SPEED_MS);
+
+            // Update DOM positions
+            barWrapper1.style.left = pos2_left;
+            barWrapper2.style.left = pos1_left;
+            barWrapper1.style.transform = `translateX(0px)`;
+            barWrapper2.style.transform = `translateX(0px)`;
+
+            [currentArray[i], currentArray[j]] = [currentArray[j], currentArray[i]];
+            [barWrappers[i], barWrappers[j]] = [barWrappers[j], barWrappers[i]];
+            [treeNodes[i], treeNodes[j]] = [treeNodes[j], treeNodes[i]];
+            
+            [bar1, bar2, node1, node2].forEach(el => el.classList.remove('swapping'));
+            drawTree(); // Redraw lines after swap
+        }
+
+        async function heapify(n, i) {
+            let largest = i;
+            const left = 2 * i + 1;
+            const right = 2 * i + 2;
+
+            treeNodes[i].classList.add('parent');
+            if (left < n && treeNodes[left]) treeNodes[left].classList.add('child');
+            if (right < n && treeNodes[right]) treeNodes[right].classList.add('child');
+
+            statusText.innerHTML = `ノード <strong>${currentArray[i]}</strong> ([${i}]) を根とする部分木をヒープ化します。`;
+            await sleep(ANIMATION_SPEED_MS);
+
+            if (left < n && currentArray[left] > currentArray[largest]) {
+                largest = left;
+            }
+            if (right < n && currentArray[right] > currentArray[largest]) {
+                largest = right;
+            }
+
+            if (largest !== i) {
+                await swap(i, largest);
+                await heapify(n, largest);
+            }
+            
+            treeNodes[i].classList.remove('parent');
+            if (left < n && treeNodes[left]) treeNodes[left].classList.remove('child');
+            if (right < n && treeNodes[right]) treeNodes[right].classList.remove('child');
+        }
+
+        async function start() {
+            if (isSorting) return;
+            isSorting = true;
+            startBtn.disabled = true;
+            newArrayBtn.disabled = true;
+
+            if (startBtn.textContent === 'リピート') {
+                resetVisuals(true);
+                await sleep(500);
+            }
+            
+            const n = currentArray.length;
+
+            // 1. ヒープ構築
+            statusText.innerHTML = "<strong>ステップ1: ヒープ構築</strong> - 配列を最大ヒープに変換します。";
+            await sleep(ANIMATION_SPEED_MS);
+            for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+                await heapify(n, i);
+            }
+
+            // 2. ソート実行
+            statusText.innerHTML = "<strong>ステップ2: ソート実行</strong> - 最大値を末尾に移動し、ヒープを再構築します。";
+            await sleep(ANIMATION_SPEED_MS);
+            for (let i = n - 1; i > 0; i--) {
+                const boundaryPos = parseInt(barWrappers[i].style.left) - 15/2;
+                heapBoundary.style.left = `${boundaryPos}px`;
+                heapBoundary.classList.remove('hidden');
+
+                await swap(0, i);
+                
+                barWrappers[i].querySelector('.bar').classList.add('sorted');
+                treeNodes[i].classList.add('sorted');
+                
+                statusText.innerHTML = `<strong>${currentArray[i]}</strong> がソート完了。残りの要素でヒープを再構築します。`;
+                await sleep(ANIMATION_SPEED_MS);
+                
+                await heapify(i, 0);
+            }
+            
+            barWrappers[0].querySelector('.bar').classList.add('sorted');
+            treeNodes[0].classList.add('sorted');
+            heapBoundary.classList.add('hidden');
+
+            statusText.innerHTML = `<strong>ソート完了！</strong>`;
+            isSorting = false;
+            startBtn.textContent = 'リピート';
+            startBtn.disabled = false;
+            newArrayBtn.disabled = false;
+        }
+
+        function resetVisuals(keepArray = false) {
+            if (!keepArray) {
+                initialArray = generateRandomIntArray();
+            }
+            currentArray = [...initialArray];
+            createVisuals();
+            statusText.innerHTML = '「開始」ボタンを押してソートを開始します。';
+            startBtn.textContent = '開始';
+            startBtn.disabled = false;
+            newArrayBtn.disabled = false;
+            heapBoundary.classList.add('hidden');
+        }
+
+        function handleNewArray() {
+            if (isSorting) return;
+            resetVisuals(false);
+        }
+
+        startBtn.addEventListener('click', start);
+        newArrayBtn.addEventListener('click', handleNewArray);
+        window.addEventListener('resize', () => {
+            positionItems();
+            drawTree();
+        });
+
+        handleNewArray();
+    </script>
+</body>
+</html>
