@@ -13,6 +13,7 @@ layout: default
     - [挿入ソート](./insertion.html)
     - [バケツソート](./bucket.html)
     - [マージソート](./merge.html)
+    
 
   - [ハミング符号の誤り訂正のアニメーション](./humming.html)（Google Geminiにより生成）
 
