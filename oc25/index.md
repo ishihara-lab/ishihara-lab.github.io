@@ -6,7 +6,7 @@ layout: default
 
 * 模擬授業「情報の表現を究めよう～情報工学のパズルチックな側面～」
 
-  - [ハミング符号の誤り訂正のアニメーション](./humming.html)（Google Geminiにより生成）
+  - [秘密分散法のアニメーション](./sss.html)（Google Geminiにより生成）
 
   - ソーティング（並べ替え）アルゴリズムのアニメーション（Google Geminiにより生成）
     - [バブルソート](./bubble.html)
@@ -14,6 +14,7 @@ layout: default
     - [バケツソート](./bucket.html)
     - [マージソート](./merge.html)
 
+  - [ハミング符号の誤り訂正のアニメーション](./humming.html)（Google Geminiにより生成）
 
 <!--
 
