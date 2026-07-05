@@ -8,14 +8,14 @@ layout: default
 
   - [秘密分散法のアニメーション](./sss.html)（Google Geminiにより生成）
 
-  - ソーティング（並べ替え）アルゴリズムのアニメーション（Google Geminiにより生成）
+  - [ハミング符号の誤り訂正のアニメーション](./humming.html)（Google Geminiにより生成）
+
+  - おまけ：ソーティング（並べ替え）アルゴリズムのアニメーション（Google Geminiにより生成）
     - [バブルソート](./bubble.html)
     - [挿入ソート](./insertion.html)
     - [バケツソート](./bucket.html)
     - [マージソート](./merge.html)
     - [ヒープソート](./heap.html)
-
-  - [ハミング符号の誤り訂正のアニメーション](./humming.html)（Google Geminiにより生成）
 
 <!--
 
