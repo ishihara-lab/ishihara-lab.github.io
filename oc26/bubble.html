@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>バブルソートのアニメーション</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bar-width: 50px;
+            --gap: 15px;
+            --transition-speed: 300ms;
+        }
+        .bar-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 400px;
+            padding: 20px;
+            gap: var(--gap);
+            position: relative;
+            overflow: hidden;
+        }
+        .bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform var(--transition-speed) ease-in-out, left var(--transition-speed) ease-in-out;
+            position: absolute;
+            bottom: 20px;
+        }
+        .bar {
+            width: var(--bar-width);
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-radius: 6px 6px 0 0;
+            transition: background-color var(--transition-speed), height var(--transition-speed);
+        }
+        .bar-label {
+            margin-top: 8px;
+            font-weight: 500;
+            color: #4b5563; /* gray-600 */
+        }
+        .comparing {
+            background-color: #f59e0b; /* amber-500 */
+        }
+        .swapping {
+            background-color: #ef4444; /* red-500 */
+        }
+        .sorted {
+            background-color: #22c55e; /* green-500 */
+        }
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+             background-color: #1f2937;
+             color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #374151;
+        }
+        .btn:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #f3f4f6; /* gray-100 */
+            border-radius: 0.5rem;
+            min-height: 5rem;
+            text-align: center;
+            font-family: 'Meiryo', sans-serif;
+            font-size: 1.1rem;
+            color: #1f2937; /* gray-800 */
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div class="container mx-auto max-w-5xl bg-white rounded-lg shadow-xl p-6">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">バブルソートのアニメーション</h1>
+        
+        <div id="bar-container" class="bar-container"></div>
+        
+        <div id="controls" class="flex justify-center gap-4 mt-6">
+            <button id="start-btn" class="btn btn-primary">開始</button>
+            <button id="new-array-btn" class="btn btn-primary">新しい配列</button>
+        </div>
+
+        <div class="status-box">
+            <p id="status-text">「開始」ボタンを押してソートを開始します。</p>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('bar-container');
+        const startBtn = document.getElementById('start-btn');
+        const newArrayBtn = document.getElementById('new-array-btn');
+        const statusText = document.getElementById('status-text');
+
+        let initialArray = [];
+        let currentArray = [];
+        let domWrappers = [];
+        let isSorting = false;
+
+        const ANIMATION_SPEED_MS = 500;
+        const SWAP_SPEED_MS = 400;
+
+        function generateRandomIntArray() {
+            const arr = [];
+            while (arr.length < 10) {
+                const r = Math.floor(Math.random() * 99) + 1;
+                if (arr.indexOf(r) === -1) arr.push(r);
+            }
+            return arr;
+        }
+
+        function positionBars() {
+            const containerWidth = container.offsetWidth;
+            const totalBarWidth = domWrappers.length * 50;
+            const totalGapWidth = (domWrappers.length - 1) * 15;
+            const totalWidth = totalBarWidth + totalGapWidth;
+            const startOffset = (containerWidth - totalWidth) / 2;
+            domWrappers.forEach((wrapper, index) => {
+                wrapper.style.left = `${startOffset + index * (50 + 15)}px`;
+            });
+        }
+
+        function createBars() {
+            container.innerHTML = '';
+            domWrappers = [];
+            currentArray.forEach((value, index) => {
+                const barWrapper = document.createElement('div');
+                barWrapper.classList.add('bar-wrapper');
+                barWrapper.dataset.value = value;
+
+                const bar = document.createElement('div');
+                bar.classList.add('bar');
+                bar.style.height = `${value * 3 + 20}px`;
+                bar.textContent = value;
+                
+                const label = document.createElement('div');
+                label.classList.add('bar-label');
+                label.textContent = `[${index}]`;
+                
+                barWrapper.appendChild(bar);
+                barWrapper.appendChild(label);
+                container.appendChild(barWrapper);
+                domWrappers.push(barWrapper);
+            });
+            positionBars();
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function getBarFromWrapper(wrapper) {
+            return wrapper.querySelector('.bar');
+        }
+        
+        async function swap(i, j) {
+            const wrapper1 = domWrappers[i];
+            const wrapper2 = domWrappers[j];
+            
+            const pos1_left = wrapper1.style.left;
+            const pos2_left = wrapper2.style.left;
+
+            wrapper1.style.transform = `translateX(${parseInt(pos2_left) - parseInt(pos1_left)}px)`;
+            wrapper2.style.transform = `translateX(${parseInt(pos1_left) - parseInt(pos2_left)}px)`;
+            
+            await sleep(SWAP_SPEED_MS);
+
+            wrapper1.style.left = pos2_left;
+            wrapper2.style.left = pos1_left;
+            wrapper1.style.transform = `translateX(0px)`;
+            wrapper2.style.transform = `translateX(0px)`;
+
+            [currentArray[i], currentArray[j]] = [currentArray[j], currentArray[i]];
+            [domWrappers[i], domWrappers[j]] = [domWrappers[j], domWrappers[i]];
+        }
+
+        async function bubbleSort() {
+            const n = currentArray.length;
+            for (let i = 0; i < n - 1; i++) {
+                statusText.innerHTML = `<strong>パス ${i + 1}</strong>: 配列の先頭から比較を開始します。`;
+                await sleep(ANIMATION_SPEED_MS * 2);
+                for (let j = 0; j < n - i - 1; j++) {
+                    const bar1 = getBarFromWrapper(domWrappers[j]);
+                    const bar2 = getBarFromWrapper(domWrappers[j + 1]);
+
+                    bar1.classList.add('comparing');
+                    bar2.classList.add('comparing');
+                    statusText.innerHTML = `比較中: [${j}]の<strong>${currentArray[j]}</strong> と [${j + 1}]の<strong>${currentArray[j + 1]}</strong>`;
+                    await sleep(ANIMATION_SPEED_MS);
+
+                    if (currentArray[j] > currentArray[j + 1]) {
+                        statusText.innerHTML = `${currentArray[j]} > ${currentArray[j + 1]} なので、<strong>交換します</strong>。`;
+                        bar1.classList.add('swapping');
+                        bar2.classList.add('swapping');
+                        await sleep(ANIMATION_SPEED_MS);
+                        await swap(j, j + 1);
+                    } else {
+                        statusText.innerHTML = `${currentArray[j]} <= ${currentArray[j + 1]} なので、交換しません。`;
+                        await sleep(ANIMATION_SPEED_MS);
+                    }
+                    bar1.classList.remove('comparing', 'swapping');
+                    bar2.classList.remove('comparing', 'swapping');
+                }
+                getBarFromWrapper(domWrappers[n - 1 - i]).classList.add('sorted');
+            }
+            getBarFromWrapper(domWrappers[0]).classList.add('sorted');
+        }
+        
+        async function start() {
+            if(isSorting) return;
+            isSorting = true;
+            startBtn.disabled = true;
+            newArrayBtn.disabled = true;
+
+            if (startBtn.textContent === 'リピート') {
+                resetVisuals(true);
+                await sleep(500);
+            }
+
+            await bubbleSort();
+            
+            statusText.innerHTML = `<strong>ソート完了！</strong> 結果: [${currentArray.join(', ')}]`;
+            isSorting = false;
+            startBtn.textContent = 'リピート';
+            startBtn.disabled = false;
+            newArrayBtn.disabled = false;
+        }
+
+        function resetVisuals(keepArray = false) {
+            if(!keepArray) {
+                initialArray = generateRandomIntArray();
+            }
+            currentArray = [...initialArray];
+            createBars();
+            statusText.innerHTML = '「開始」ボタンを押してソートを開始します。';
+            startBtn.textContent = '開始';
+            startBtn.disabled = false;
+            newArrayBtn.disabled = false;
+        }
+
+        function handleNewArray() {
+            if (isSorting) return;
+            resetVisuals(false);
+        }
+
+        startBtn.addEventListener('click', start);
+        newArrayBtn.addEventListener('click', handleNewArray);
+        window.addEventListener('resize', positionBars);
+
+        // 初期化
+        handleNewArray();
+
+    </script>
+</body>
+</html>

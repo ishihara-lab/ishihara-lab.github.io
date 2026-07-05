@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マージソートのアニメーション</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animation-container {
+            position: relative;
+            width: 100%;
+            min-height: 500px;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            overflow-x: auto;
+            padding: 20px;
+        }
+        .level {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+        .array-container {
+            display: flex;
+            gap: 5px;
+            padding: 5px;
+            border: 2px solid transparent;
+            border-radius: 0.5rem;
+            margin: 0 10px;
+            min-height: 55px;
+        }
+        .element {
+            width: 45px;
+            height: 45px;
+            background-color: #60a5fa;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border-radius: 0.375rem;
+            transition: all 0.5s ease-in-out;
+        }
+        .highlight-split {
+            border-color: #f59e0b;
+        }
+        .highlight-merge-source {
+            border-color: #a855f7;
+            background-color: #f3e8ff;
+        }
+        .highlight-merge-target {
+            border-color: #22c55e;
+            background-color: #dcfce7;
+        }
+        .highlight-compare {
+            transform: translateY(-10px) scale(1.1);
+            background-color: #facc15;
+        }
+        .sorted .element {
+            background-color: #22c55e;
+        }
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+             background-color: #1f2937;
+             color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #374151;
+        }
+        .btn:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #f3f4f6;
+            border-radius: 0.5rem;
+            min-height: 4rem;
+            text-align: center;
+            font-family: 'Meiryo', sans-serif;
+            font-size: 1.1rem;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div class="container mx-auto max-w-6xl bg-white rounded-lg shadow-xl p-6">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">マージソートのアニメーション</h1>
+
+        <div id="animation-container" class="animation-container"></div>
+
+        <div id="controls" class="flex justify-center gap-4 mt-6">
+            <button id="start-btn" class="btn btn-primary">開始</button>
+            <button id="new-array-btn" class="btn btn-primary">新しい配列</button>
+        </div>
+
+        <div class="status-box">
+            <p id="status-text">「開始」ボタンを押してソートを開始します。</p>
+        </div>
+    </div>
+
+    <script>
+        const animationContainer = document.getElementById('animation-container');
+        const startBtn = document.getElementById('start-btn');
+        const newArrayBtn = document.getElementById('new-array-btn');
+        const statusText = document.getElementById('status-text');
+
+        let initialArray = [];
+        let isSorting = false;
+        const ANIMATION_SPEED_MS = 700;
+
+        function generateRandomIntArray() {
+            const arr = [];
+            while (arr.length < 8) {
+                const r = Math.floor(Math.random() * 99) + 1;
+                if (arr.indexOf(r) === -1) arr.push(r);
+            }
+            return arr;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function createArrayContainer(arr, level, id) {
+            const container = document.createElement('div');
+            container.classList.add('array-container');
+            container.id = `arr-${level}-${id}`;
+            arr.forEach(val => {
+                const el = document.createElement('div');
+                el.classList.add('element');
+                el.textContent = val;
+                container.appendChild(el);
+            });
+            return container;
+        }
+        
+        async function startSort() {
+            if (isSorting) return;
+            isSorting = true;
+            startBtn.disabled = true;
+            newArrayBtn.disabled = true;
+            
+            if(startBtn.textContent === 'リピート'){
+                handleNewArray(true); // Keep the same array
+                await sleep(500);
+            }
+
+            animationContainer.innerHTML = '';
+            statusText.innerHTML = "<strong>ステップ1: 分割</strong> - 配列が1要素になるまで再帰的に分割します。";
+
+            // 1. 分割フェーズの表示
+            let level = 0;
+            let currentLevelArrays = [initialArray];
+            while (currentLevelArrays[0].length > 1) {
+                const levelDiv = document.createElement('div');
+                levelDiv.classList.add('level');
+                animationContainer.appendChild(levelDiv);
+
+                currentLevelArrays.forEach(arr => {
+                    levelDiv.appendChild(createArrayContainer(arr, -1, -1));
+                });
+                
+                await sleep(ANIMATION_SPEED_MS);
+
+                const nextLevelArrays = [];
+                currentLevelArrays.forEach(arr => {
+                    const mid = Math.ceil(arr.length / 2);
+                    nextLevelArrays.push(arr.slice(0, mid));
+                    nextLevelArrays.push(arr.slice(mid));
+                });
+                currentLevelArrays = nextLevelArrays;
+                level++;
+            }
+            
+            // 最終レベル（1要素ずつの配列）を表示
+            const finalLevelDiv = document.createElement('div');
+            finalLevelDiv.classList.add('level');
+            animationContainer.appendChild(finalLevelDiv);
+            currentLevelArrays.forEach((arr, i) => {
+                const container = createArrayContainer(arr, level, i);
+                container.classList.add('sorted');
+                finalLevelDiv.appendChild(container);
+            });
+            
+            await sleep(ANIMATION_SPEED_MS);
+
+            // 2. 統合フェーズ
+            statusText.innerHTML = "<strong>ステップ2: 統合</strong> - ソートしながら配列を結合していきます。";
+            await sleep(ANIMATION_SPEED_MS * 1.5);
+
+            for (let l = level - 1; l >= 0; l--) {
+                const sourceLevelDiv = animationContainer.children[l + 1];
+                const targetLevelDiv = animationContainer.children[l];
+                
+                for (let i = 0; i < targetLevelDiv.children.length; i++) {
+                    const targetContainer = targetLevelDiv.children[i];
+                    const sourceContainer1 = sourceLevelDiv.children[i * 2];
+                    const sourceContainer2 = sourceLevelDiv.children[i * 2 + 1];
+
+                    targetContainer.classList.add('highlight-merge-target');
+                    sourceContainer1.classList.add('highlight-merge-source');
+                    if(sourceContainer2) sourceContainer2.classList.add('highlight-merge-source');
+
+                    statusText.innerHTML = `[${Array.from(sourceContainer1.children).map(c=>c.textContent).join(',')}] と [${sourceContainer2 ? Array.from(sourceContainer2.children).map(c=>c.textContent).join(',') : ''}] をマージします。`;
+                    await sleep(ANIMATION_SPEED_MS);
+
+                    const mergedArray = [];
+                    const arr1 = Array.from(sourceContainer1.children);
+                    const arr2 = sourceContainer2 ? Array.from(sourceContainer2.children) : [];
+                    let p1 = 0, p2 = 0;
+
+                    while (p1 < arr1.length || p2 < arr2.length) {
+                        const el1 = arr1[p1];
+                        const el2 = arr2[p2];
+                        let smallerEl;
+
+                        if (el1) el1.classList.add('highlight-compare');
+                        if (el2) el2.classList.add('highlight-compare');
+                        await sleep(ANIMATION_SPEED_MS);
+
+                        if (p1 < arr1.length && (p2 >= arr2.length || parseInt(el1.textContent) <= parseInt(el2.textContent))) {
+                            smallerEl = el1;
+                            p1++;
+                        } else {
+                            smallerEl = el2;
+                            p2++;
+                        }
+                        
+                        if (el1) el1.classList.remove('highlight-compare');
+                        if (el2) el2.classList.remove('highlight-compare');
+                        
+                        mergedArray.push(smallerEl);
+                    }
+                    
+                    targetContainer.innerHTML = '';
+                    mergedArray.forEach(el => targetContainer.appendChild(el));
+                    targetContainer.classList.add('sorted');
+                    
+                    targetContainer.classList.remove('highlight-merge-target');
+                    sourceContainer1.classList.remove('highlight-merge-source');
+                    if(sourceContainer2) sourceContainer2.classList.remove('highlight-merge-source');
+                    sourceContainer1.style.opacity = '0.3';
+                    if(sourceContainer2) sourceContainer2.style.opacity = '0.3';
+                    
+                    await sleep(ANIMATION_SPEED_MS);
+                }
+            }
+
+            statusText.innerHTML = "<strong>ソート完了！</strong>";
+            isSorting = false;
+            startBtn.textContent = 'リピート';
+            startBtn.disabled = false;
+            newArrayBtn.disabled = false;
+        }
+
+        function handleNewArray(keepArray = false) {
+            if (isSorting) return;
+            if (!keepArray) {
+                initialArray = generateRandomIntArray();
+            }
+            animationContainer.innerHTML = '';
+            const levelDiv = document.createElement('div');
+            levelDiv.classList.add('level');
+            levelDiv.appendChild(createArrayContainer(initialArray, 0, 0));
+            animationContainer.appendChild(levelDiv);
+            
+            statusText.innerHTML = '「開始」ボタンを押してソートを開始します。';
+            startBtn.textContent = '開始';
+            startBtn.disabled = false;
+            newArrayBtn.disabled = false;
+        }
+
+        startBtn.addEventListener('click', startSort);
+        newArrayBtn.addEventListener('click', () => handleNewArray(false));
+
+        // 初期化
+        handleNewArray();
+    </script>
+</body>
+</html>

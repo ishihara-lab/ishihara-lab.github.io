@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インタラクティブなシャミアの秘密分散法デモ (有限体 F_p)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .control-panel label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        .control-panel input[type="number"], .control-panel input[type="radio"] {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #d2d6dc;
+        }
+        .control-panel input[type="number"] {
+             width: 100%;
+        }
+        .control-panel input[type="number"]:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            color: white;
+            transition: background-color 0.3s, transform 0.1s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-secondary {
+            background-color: #64748b;
+        }
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
+        .share-item {
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .share-item.selected {
+            background-color: #e0e7ff;
+            border-color: #4f46e5;
+        }
+        #manual-coeffs-container.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">シャミアの閾値型秘密分散法 (有限体 F_p)</h1>
+            <p class="mt-2 text-lg text-gray-600">インタラクティブ・ビジュアライゼーション</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- コントロールパネル -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg control-panel">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">1. パラメータ設定</h2>
+                <div class="space-y-6">
+                    <div>
+                        <label for="prime">素数 (p)</label>
+                        <input type="number" id="prime" value="97" class="text-lg">
+                        <p class="text-sm text-gray-500 mt-1">計算の基準となる素数。p > S かつ p > n である必要があります。</p>
+                    </div>
+                    <div>
+                        <label for="secret">秘密の値 (S)</label>
+                        <input type="number" id="secret" value="42" class="text-lg">
+                        <p class="text-sm text-gray-500 mt-1">隠したい秘密の数字。</p>
+                    </div>
+                    <div>
+                        <label for="shares-total">シェアの総数 (n)</label>
+                        <input type="number" id="shares-total" value="6" min="2" class="text-lg">
+                        <p class="text-sm text-gray-500 mt-1">生成するシェアの数。</p>
+                    </div>
+                    <div>
+                        <label for="threshold">閾値 (k)</label>
+                        <input type="number" id="threshold" value="3" min="2" class="text-lg">
+                        <p class="text-sm text-gray-500 mt-1">復元に必要な最小シェア数。</p>
+                    </div>
+                    
+                    <!-- 新機能: 多項式生成方法の選択 -->
+                    <div>
+                        <label class="font-medium text-gray-700">多項式の生成方法</label>
+                        <div class="flex items-center space-x-4 mt-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="poly-mode" value="random" checked class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                <span class="ml-2 text-gray-700">ランダム</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="poly-mode" value="manual" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                <span class="ml-2 text-gray-700">手動</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="manual-coeffs-container" class="hidden space-y-2 mt-4 p-4 bg-gray-50 rounded-lg">
+                        <!-- 手動係数入力フィールドがここに追加されます -->
+                    </div>
+
+                </div>
+                <div class="mt-8">
+                    <button id="generate-btn" class="btn btn-primary w-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L7.86 5.89a2 2 0 00-1.13.86L4.35 9.37c-.78.78-.78 2.05 0 2.83l2.38 2.38a2 2 0 00.86 1.13l2.72.65c1.56.38 2.94-.99 2.56-2.56l-.65-2.72a2 2 0 00-1.13-.86L9.37 9.65a2 2 0 00-2.83 0L4.17 12a2 2 0 000 2.83l2.38 2.38a2 2 0 002.83 0l2.38-2.38a2 2 0 000-2.83L9.37 9.65a2 2 0 00-2.83 0L4.17 12a2 2 0 000 2.83l2.38 2.38a2 2 0 002.83 0l2.38-2.38a2 2 0 000-2.83L9.37 9.65a2 2 0 00-2.83 0L4.17 12a2 2 0 000 2.83l2.38 2.38a2 2 0 002.83 0l2.38-2.38a2 2 0 000-2.83L9.37 9.65a2 2 0 00-2.83 0L4.17 12a2 2 0 000 2.83l2.38 2.38a2 2 0 002.83 0l2.38-2.38a2 2 0 000-2.83z" clip-rule="evenodd" /></svg>
+                        生成 & シェア分割
+                    </button>
+                </div>
+                 <div id="polynomial-display" class="mt-6 p-4 bg-gray-100 rounded-lg text-center text-sm break-all">
+                    多項式: ここに表示されます
+                </div>
+            </div>
+
+            <!-- グラフとシェア -->
+            <div class="lg:col-span-2 space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2">2. シェアの可視化 (F_p)</h2>
+                    <div id="graph" class="w-full h-80 md:h-96 bg-gray-50 rounded-lg overflow-hidden"></div>
+                    <p class="text-sm text-gray-500 mt-2">
+                        秘密の値 S を切片 (x=0) とする k-1 次の多項式が生成されます。シェアはこの多項式上の点 (x, f(x) mod p) です。
+                    </p>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-bold mb-4 border-b pb-2">3. シェアを選択して復元</h2>
+                    <p class="text-gray-600 mb-4">
+                        下のリストからシェアをクリックして選択してください。
+                        <span id="threshold-info" class="font-bold text-indigo-600"></span>個以上選択すると復元できます。
+                    </p>
+                    <div id="shares-list" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                        <!-- シェアがここに動的に追加されます -->
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button id="reconstruct-btn" class="btn btn-secondary" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                            復元
+                        </button>
+                         <div id="reconstruction-result" class="text-lg font-bold text-right">
+                            結果:
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM要素の取得 ---
+        const primeInput = document.getElementById('prime');
+        const secretInput = document.getElementById('secret');
+        const nInput = document.getElementById('shares-total');
+        const kInput = document.getElementById('threshold');
+        const generateBtn = document.getElementById('generate-btn');
+        const reconstructBtn = document.getElementById('reconstruct-btn');
+        const sharesListDiv = document.getElementById('shares-list');
+        const resultDiv = document.getElementById('reconstruction-result');
+        const polyDiv = document.getElementById('polynomial-display');
+        const thresholdInfoSpan = document.getElementById('threshold-info');
+        const manualCoeffsContainer = document.getElementById('manual-coeffs-container');
+
+        // --- グラフ関連のセットアップ ---
+        const margin = {top: 20, right: 30, bottom: 40, left: 50};
+        const graphContainer = document.getElementById('graph');
+        let width = graphContainer.clientWidth - margin.left - margin.right;
+        let height = graphContainer.clientHeight - margin.top - margin.bottom;
+
+        const svg = d3.select("#graph").append("svg")
+            .attr("width", '100%')
+            .attr("height", '100%')
+            .attr("viewBox", `0 0 ${graphContainer.clientWidth} ${graphContainer.clientHeight}`)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip");
+
+        // --- アプリケーションの状態管理 ---
+        let state = {
+            p: 0, secret: 0, n: 0, k: 0,
+            polynomial: [], shares: [], selectedShares: [],
+        };
+
+        // --- 有限体演算ヘルパー ---
+        const mod = (n, m) => ((n % m) + m) % m;
+
+        function power(base, exp, modulus) {
+            let res = 1n;
+            base = BigInt(base);
+            modulus = BigInt(modulus);
+            while (exp > 0) {
+                if (BigInt(exp) % 2n === 1n) res = (res * base) % modulus;
+                exp = exp >> 1;
+                base = (base * base) % modulus;
+            }
+            return Number(res);
+        }
+
+        function modInverse(n, modulus) {
+            return power(n, modulus - 2, modulus);
+        }
+
+        function isPrime(num) {
+            if (num <= 1) return false;
+            if (num <= 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i = i + 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        // --- 主要な関数 ---
+        function generateRandomPolynomial() {
+            const { secret, k, p } = state;
+            const poly = [secret];
+            for (let i = 1; i < k; i++) {
+                poly.push(Math.floor(Math.random() * p));
+            }
+            state.polynomial = poly;
+        }
+
+        function getManualPolynomial() {
+            const { secret, k, p } = state;
+            const poly = [secret];
+            const inputs = manualCoeffsContainer.querySelectorAll('.coeff-input');
+            for (let i = 0; i < inputs.length; i++) {
+                const coeff = parseInt(inputs[i].value);
+                if (isNaN(coeff) || coeff < 0 || coeff >= p) {
+                    alert(`係数 a_${i+1} は 0 から ${p-1} の間の整数である必要があります。`);
+                    return false;
+                }
+                poly.push(coeff);
+            }
+            state.polynomial = poly;
+            return true;
+        }
+
+        function displayPolynomial() {
+            let polyStr = `f(x) = ${state.polynomial[0]}`;
+            for (let i = 1; i < state.polynomial.length; i++) {
+                const coeff = state.polynomial[i];
+                if (coeff === 0) continue;
+                polyStr += ` + ${coeff}x`;
+                if (i > 1) polyStr += `<sup>${i}</sup>`;
+            }
+            polyDiv.innerHTML = `<strong>多項式 (mod ${state.p}):</strong><br>${polyStr}`;
+        }
+        
+        function evaluatePolynomial(poly, x, p) {
+            let result = 0;
+            for (let i = 0; i < poly.length; i++) {
+                const term = mod(poly[i] * power(x, i, p), p);
+                result = mod(result + term, p);
+            }
+            return result;
+        }
+
+        function generateShares() {
+            const { n, polynomial, p } = state;
+            state.shares = [];
+            for (let i = 1; i <= n; i++) {
+                state.shares.push({ x: i, y: evaluatePolynomial(polynomial, i, p) });
+            }
+        }
+
+        function lagrangeInterpolation(points, p, x_target = 0) {
+            let sum = 0;
+            const k = points.length;
+
+            for (let i = 0; i < k; i++) {
+                let numerator = 1;
+                let denominator = 1;
+                for (let j = 0; j < k; j++) {
+                    if (i === j) continue;
+                    numerator = mod(numerator * (x_target - points[j].x), p);
+                    denominator = mod(denominator * (points[i].x - points[j].x), p);
+                }
+                const inv_denominator = modInverse(denominator, p);
+                const term = mod(points[i].y * mod(numerator * inv_denominator, p), p);
+                sum = mod(sum + term, p);
+            }
+            return sum;
+        }
+        
+        // --- UI更新関数 ---
+        function updateCoeffsInputs(k, p) {
+            manualCoeffsContainer.innerHTML = '';
+            if (k > 1) {
+                let html = `<p class="text-sm text-gray-600 font-semibold mb-2">係数を指定: f(x) = S + a₁x + ...</p>`;
+                for (let i = 1; i < k; i++) {
+                    html += `
+                        <div class="mt-2">
+                            <label for="coeff-${i}" class="text-sm">係数 a<sub>${i}</sub> (x<sup>${i}</sup>の係数)</label>
+                            <input type="number" id="coeff-${i}" class="coeff-input w-full p-1 border rounded-md text-sm" value="0" min="0" max="${p-1}">
+                        </div>
+                    `;
+                }
+                manualCoeffsContainer.innerHTML = html;
+            }
+        }
+
+        function updateSharesList() {
+            sharesListDiv.innerHTML = '';
+            state.shares.forEach(share => {
+                const shareEl = document.createElement('div');
+                shareEl.className = 'share-item border-2 border-gray-300 p-3 rounded-lg text-center';
+                shareEl.innerHTML = `<span class="font-mono font-bold">(${share.x}, ${share.y})</span>`;
+                shareEl.dataset.x = share.x;
+                shareEl.addEventListener('click', () => toggleShareSelection(share, shareEl));
+                sharesListDiv.appendChild(shareEl);
+            });
+        }
+
+        function updateGraph(options = {}) {
+            const { reconstructedPoints = null } = options;
+            
+            svg.selectAll("*").remove();
+
+            const xScale = d3.scaleLinear().domain([0, state.n + 1]).range([0, width]);
+            const yScale = d3.scaleLinear().domain([-1, state.p]).range([height, 0]);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(xScale).ticks(Math.min(state.n + 1, 20)));
+            svg.append("g").call(d3.axisLeft(yScale));
+
+            svg.append('g').attr('class', 'grid')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(xScale).tickSize(-height).tickFormat(''));
+            svg.append('g').attr('class', 'grid')
+                .call(d3.axisLeft(yScale).tickSize(-width).tickFormat(''));
+            svg.selectAll('.grid line').attr('stroke', '#e5e7eb');
+            svg.selectAll('.grid path').attr('stroke', 'none');
+
+            if (reconstructedPoints) {
+                const lineGenerator = d3.line()
+                    .x(d => xScale(d.x))
+                    .y(d => yScale(d.y))
+                    .curve(d3.curveCatmullRom);
+                
+                const path = svg.append("path")
+                    .datum(reconstructedPoints)
+                    .attr("fill", "none")
+                    .attr("stroke", "#ef4444")
+                    .attr("stroke-width", 3.5)
+                    .attr("stroke-dasharray", "5,5")
+                    .attr("d", lineGenerator);
+                
+                const totalLength = path.node().getTotalLength();
+                path.attr("stroke-dasharray", totalLength + " " + totalLength)
+                  .attr("stroke-dashoffset", totalLength)
+                  .transition().duration(1500).ease(d3.easeLinear)
+                  .attr("stroke-dashoffset", 0);
+            }
+
+            svg.selectAll(".share-dot")
+                .data(state.shares)
+                .enter().append("circle")
+                .attr("class", "share-dot")
+                .attr("cx", d => xScale(d.x))
+                .attr("cy", d => yScale(d.y))
+                .attr("r", 5)
+                .attr("fill", "#6366f1")
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().style("opacity", .9);
+                    tooltip.html(`シェア: (${d.x}, ${d.y})`)
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => tooltip.transition().style("opacity", 0));
+
+            svg.selectAll(".selected-share-dot")
+                .data(state.selectedShares)
+                .enter().append("circle")
+                .attr("class", "selected-share-dot")
+                .attr("cx", d => xScale(d.x))
+                .attr("cy", d => yScale(d.y))
+                .attr("r", 8)
+                .attr("fill", "#ef4444")
+                .attr("stroke", "#991b1b")
+                .attr("stroke-width", 2);
+            
+             svg.append("circle")
+                .attr("cx", xScale(0))
+                .attr("cy", yScale(state.secret))
+                .attr("r", 8)
+                .attr("fill", "#10b981")
+                .attr("stroke", "#047857")
+                .attr("stroke-width", 2)
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().style("opacity", .9);
+                    tooltip.html(`秘密: S = ${state.secret}`)
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => tooltip.transition().style("opacity", 0));
+        }
+
+        // --- イベントハンドラ ---
+        function handleGenerate() {
+            state.p = parseInt(primeInput.value);
+            state.secret = parseInt(secretInput.value);
+            state.n = parseInt(nInput.value);
+            state.k = parseInt(kInput.value);
+
+            if (isNaN(state.p) || isNaN(state.secret) || isNaN(state.n) || isNaN(state.k)) {
+                alert("有効な数値を入力してください。"); return;
+            }
+            if (!isPrime(state.p)) {
+                alert(`p=${state.p} は素数ではありません。`); return;
+            }
+            if (state.secret >= state.p) {
+                alert(`秘密(S)は素数(p)より小さい必要があります。`); return;
+            }
+            if (state.n >= state.p) {
+                alert(`シェア数(n)は素数(p)より小さい必要があります。`); return;
+            }
+            if (state.k > state.n) {
+                alert("閾値(k)はシェアの総数(n)以下でなければなりません。");
+                kInput.value = state.n; state.k = state.n;
+                return;
+            }
+            if (state.k < 2 || state.n < 2) {
+                alert("閾値(k)とシェアの総数(n)は2以上である必要があります。"); return;
+            }
+            
+            state.selectedShares = [];
+            resultDiv.textContent = "結果:";
+            reconstructBtn.disabled = true;
+            reconstructBtn.classList.add('btn-secondary');
+            reconstructBtn.classList.remove('btn-primary');
+
+            const mode = document.querySelector('input[name="poly-mode"]:checked').value;
+            if (mode === 'random') {
+                generateRandomPolynomial();
+            } else {
+                if (!getManualPolynomial()) {
+                    return; // 手動入力が不正な場合は中断
+                }
+            }
+
+            displayPolynomial();
+            generateShares();
+            thresholdInfoSpan.textContent = `${state.k}`;
+            updateSharesList();
+            updateGraph();
+        }
+
+        function toggleShareSelection(share, element) {
+            const index = state.selectedShares.findIndex(s => s.x === share.x);
+            if (index > -1) {
+                state.selectedShares.splice(index, 1);
+                element.classList.remove('selected');
+            } else {
+                state.selectedShares.push(share);
+                element.classList.add('selected');
+            }
+
+            if (state.selectedShares.length > 0) {
+                reconstructBtn.disabled = false;
+                reconstructBtn.classList.remove('btn-secondary');
+                reconstructBtn.classList.add('btn-primary');
+            } else {
+                reconstructBtn.disabled = true;
+                reconstructBtn.classList.add('btn-secondary');
+                reconstructBtn.classList.remove('btn-primary');
+            }
+            updateGraph();
+        }
+
+        function handleReconstruct() {
+            const { selectedShares, k, p, secret } = state;
+            
+            if (selectedShares.length < k) {
+                resultDiv.innerHTML = `<span class="text-red-600">失敗: シェアが${k}個未満です！</span>`;
+                const pointsToDraw = d3.range(0, state.n + 1, 0.5).map(x_val => ({
+                    x: x_val,
+                    y: lagrangeInterpolation(selectedShares, p, x_val)
+                }));
+                updateGraph({ reconstructedPoints: pointsToDraw });
+            } else {
+                const pointsForReconstruction = selectedShares.slice(0, k);
+                const reconstructedSecret = lagrangeInterpolation(pointsForReconstruction, p, 0);
+                
+                if (reconstructedSecret === secret) {
+                    resultDiv.innerHTML = `<span class="text-green-600">成功！ 復元された秘密: ${reconstructedSecret}</span>`;
+                } else {
+                     resultDiv.innerHTML = `<span class="text-red-600">失敗！ 復元値: ${reconstructedSecret} (本来の値: ${secret})</span>`;
+                }
+
+                const pointsToDraw = d3.range(0, state.n + 1, 0.5).map(x_val => ({
+                    x: x_val,
+                    y: lagrangeInterpolation(pointsForReconstruction, p, x_val)
+                }));
+                updateGraph({ reconstructedPoints: pointsToDraw });
+            }
+        }
+        
+        // --- 初期化処理 ---
+        generateBtn.addEventListener('click', handleGenerate);
+        reconstructBtn.addEventListener('click', handleReconstruct);
+        
+        document.querySelectorAll('input[name="poly-mode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'manual') {
+                    manualCoeffsContainer.classList.remove('hidden');
+                    updateCoeffsInputs(parseInt(kInput.value), parseInt(primeInput.value));
+                } else {
+                    manualCoeffsContainer.classList.add('hidden');
+                }
+            });
+        });
+
+        kInput.addEventListener('input', () => {
+            const k = parseInt(kInput.value);
+            if (document.querySelector('input[name="poly-mode"]:checked').value === 'manual') {
+                updateCoeffsInputs(k, parseInt(primeInput.value));
+            }
+        });
+        primeInput.addEventListener('input', () => {
+            if (document.querySelector('input[name="poly-mode"]:checked').value === 'manual') {
+                updateCoeffsInputs(parseInt(kInput.value), parseInt(primeInput.value));
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            width = graphContainer.clientWidth - margin.left - margin.right;
+            height = graphContainer.clientHeight - margin.top - margin.bottom;
+            svg.attr("viewBox", `0 0 ${graphContainer.clientWidth} ${graphContainer.clientHeight}`);
+            handleGenerate();
+        });
+
+        handleGenerate();
+    });
+    </script>
+
+</body>
+</html>
