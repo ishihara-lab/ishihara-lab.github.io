@@ -15,6 +15,7 @@ layout: default
     - [挿入ソート](./insertion.html)
     - [バケツソート](./bucket.html)
     - [マージソート](./merge.html)
+    - [クイックソート](./quick.html)
     - [ヒープソート](./heap.html)
 
 <!--
