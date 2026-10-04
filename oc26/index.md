@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: pixel-short
 ---
 
 # オープンキャンパス2026
