@@ -1,13 +1,13 @@
 ---
-layout: preview
+layout: pixel
 ---
 
-<section class="preview-section" markdown="1">
+<section class="pixel-section" markdown="1">
 
 ## お知らせ
 {:#news}
 
-<ul class="preview-news">
+<ul class="pixel-news">
   {% for post in site.posts limit:10 %}
   <li>
     <span>{{ post.date | date: "%Y/%m/%d" }} —</span>
@@ -18,7 +18,7 @@ layout: preview
 
 </section>
 
-<section class="preview-section" markdown="1">
+<section class="pixel-section" markdown="1">
 
 ## 研究内容
 {:#research}
@@ -27,9 +27,9 @@ layout: preview
 
 石原研究室では，情報工学の中でも特に次の2つの分野に取り組んでいます．
 
-<div class="preview-examples preview-fields" markdown="1">
+<div class="pixel-examples pixel-fields" markdown="1">
 
-<div class="preview-example" markdown="1">
+<div class="pixel-example" markdown="1">
 
 #### データ工学
 
@@ -37,7 +37,7 @@ layout: preview
 
 </div>
 
-<div class="preview-example" markdown="1">
+<div class="pixel-example" markdown="1">
 
 #### 情報セキュリティ
 
@@ -50,13 +50,13 @@ layout: preview
 「データをどう扱うか」という一見地味なテーマですが，実は私たちの生活のいたるところに関わっています．
 ネットショッピング，SNS，病院の電子カルテ，銀行口座――どれも裏側では「データをどう記録し，どう安全にやり取りするか」という技術に支えられています．
 
-<div class="preview-feature" markdown="1">
+<div class="pixel-feature" markdown="1">
 
 ### 最近取り組んでいるテーマ
 
 最近特に力を入れているのは，**「複数の組織や人がデータを分担して持ちながら，安全に共有し合う仕組み」**の研究です．
 
-<details class="preview-details" markdown="1">
+<details class="pixel-details" markdown="1">
 <summary>研究内容について見る</summary>
 <div markdown="1">
 
@@ -72,7 +72,7 @@ layout: preview
 
 </section>
 
-<section class="preview-section" markdown="1">
+<section class="pixel-section" markdown="1">
 
 ## 学生の研究テーマ例
 {:#themes}
@@ -91,9 +91,9 @@ layout: preview
 
 ### 2025年度の卒業研究テーマ
 
-<details class="preview-details" markdown="1">
+<details class="pixel-details" markdown="1">
 <summary>2025年度の卒業研究テーマを見る</summary>
-<div class="preview-theme-list" markdown="1">
+<div class="pixel-theme-list" markdown="1">
 
 - セマンティックセグメンテーションによる解析を用いた写真の構図改善アドバイスシステムの提案
 - バスケットボールにおける加速度センサを用いたシュート時の接触判定補助システムの提案
@@ -112,20 +112,20 @@ layout: preview
 
 </section>
 
-<section class="preview-section" markdown="1">
+<section class="pixel-section" markdown="1">
 
 ## 研究室生活
 {:#life}
 
 石原研究室では，物事を筋道立てて考える**サイエンス（理学）**と，実際にシステムを設計・開発する**エンジニアリング（工学）**の両方を大切にしています．
 
-<div class="preview-study-stage" markdown="1">
+<div class="pixel-study-stage" markdown="1">
 
 ### 3年次演習の流れ
 
 前半・後半の2つのフェーズに分かれています．
 
-<details class="preview-details" markdown="1">
+<details class="pixel-details" markdown="1">
 <summary>3年次演習について見る</summary>
 <div markdown="1">
 
@@ -168,7 +168,7 @@ layout: preview
 
 </section>
 
-<section class="preview-section" markdown="1">
+<section class="pixel-section" markdown="1">
 
 ## メンバー
 {:#members}
