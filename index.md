@@ -1,141 +1,191 @@
 ---
-layout: default
+layout: pixel
 ---
 
-情報工学，特にデータ工学や情報セキュリティに関する
-研究・教育に取り組んでいます．
+<section class="pixel-section" markdown="1">
 
-# メンバー
+## お知らせ
+{:#news}
 
-* 教員：石原 靖哲（いしはら やすのり）
-  [【研究業績】](https://porta.nanzan-u.ac.jp/research/view?l=ja&u=103810)
-  [【researchmap】](https://researchmap.jp/yasunori-ishihara)
+<ul class="pixel-news">
+  {% for post in site.posts limit:10 %}
+  <li>
+    <span>{{ post.date | date: "%Y/%m/%d" }} —</span>
+    <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+  </li>
+  {% endfor %}
+</ul>
 
-* 学生
-  - M2：2名
-  - M1：1名
-  - B4：11名
-  - B3：8名
+</section>
 
-<!--
+<section class="pixel-section" markdown="1">
 
-Text can be **bold**, _italic_, or ~~strikethrough~~.
+## 研究内容
+{:#research}
 
-[Link to another page](./another-page.html).
+### 専門分野：情報工学
 
-There should be whitespace between paragraphs.
+石原研究室では，情報工学の中でも特に次の2つの分野に取り組んでいます．
 
-There should be whitespace between paragraphs. We recommend including a README, or a file with information about your project.
+<div class="pixel-examples pixel-fields" markdown="1">
 
-# Header 1
+<div class="pixel-example" markdown="1">
 
-This is a normal paragraph following a header. GitHub is a code hosting platform for version control and collaboration. It lets you and others work together on projects from anywhere.
+#### データ工学
 
-## Header 2
+データを効率よく記録・管理するための理論・技術
 
-> This is a blockquote following a header.
->
-> When something is important enough, you do it even if the odds are not in your favor.
+</div>
 
-### Header 3
+<div class="pixel-example" markdown="1">
 
-```js
-// Javascript code with syntax highlighting.
-var fun = function lang(l) {
-  dateformat.i18n = require('./lang/' + l)
-  return true;
-}
-```
+#### 情報セキュリティ
 
-```ruby
-# Ruby code with syntax highlighting
-GitHubPages::Dependencies.gems.each do |gem, version|
-  s.add_dependency(gem, "= #{version}")
-end
-```
+データを安全に通信・保存するための理論・技術
 
-#### Header 4
+</div>
 
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
+</div>
 
-##### Header 5
+「データをどう扱うか」という一見地味なテーマですが，実は私たちの生活のいたるところに関わっています．
+ネットショッピング，SNS，病院の電子カルテ，銀行口座――どれも裏側では「データをどう記録し，どう安全にやり取りするか」という技術に支えられています．
 
-1.  This is an ordered list following a header.
-2.  This is an ordered list following a header.
-3.  This is an ordered list following a header.
+<div class="pixel-feature" markdown="1">
 
-###### Header 6
+### 最近取り組んでいるテーマ
 
-| head1        | head two          | three |
-|:-------------|:------------------|:------|
-| ok           | good swedish fish | nice  |
-| out of stock | good and plenty   | nice  |
-| ok           | good `oreos`      | hmm   |
-| ok           | good `zoute` drop | yumm  |
+最近特に力を入れているのは，**「複数の組織や人がデータを分担して持ちながら，安全に共有し合う仕組み」**の研究です．
 
-### There's a horizontal rule below this.
+<details class="pixel-details" markdown="1">
+<summary>研究内容について見る</summary>
+<div markdown="1">
 
-* * *
+例えば，病院・クリニック・薬局・製薬会社がそれぞれ患者さんのデータの一部を持っている場面を想像してください．
+「どの情報を，誰に，どこまで公開してよいか」というルール（ポリシー）を各組織が個別に決めると，ルール同士が矛盾してしまうことがあります．
+こうした矛盾を防ぎ，かつ双方向にデータを更新できるような仕組みを，理論と実装の両面から研究しています．
 
-### Here is an unordered list:
+</div>
+</details>
 
-*   Item foo
-*   Item bar
-*   Item baz
-*   Item zip
-
-### And an ordered list:
-
-1.  Item one
-1.  Item two
-1.  Item three
-1.  Item four
-
-### And a nested list:
-
-- level 1 item
-  - level 2 item
-  - level 2 item
-    - level 3 item
-    - level 3 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-
-### Small image
-
-![Octocat](https://github.githubassets.com/images/icons/emoji/octocat.png)
-
-### Large image
-
-![Branching](https://guides.github.com/activities/hello-world/branching.png)
+</div>
 
 
-### Definition lists can be used with HTML syntax.
+</section>
 
-<dl>
-<dt>Name</dt>
-<dd>Godzilla</dd>
-<dt>Born</dt>
-<dd>1952</dd>
-<dt>Birthplace</dt>
-<dd>Japan</dd>
-<dt>Color</dt>
-<dd>Green</dd>
-</dl>
+<section class="pixel-section" markdown="1">
 
-```
-Long, single-line code blocks should not wrap. They should horizontally scroll if they are too long. This line should be long enough to demonstrate this.
-```
+## 学生の研究テーマ例
+{:#themes}
 
-```
-The final element.
-```
--->
+石原研究室の学生は，データ工学や情報セキュリティに関わる，次のような問いについて研究しています．
+
+- 複数の人や組織が，必要なデータだけを安全に共有するにはどうすればよいか．
+- ある場所のデータを更新したとき，関係する別のデータをどう整合させるか．
+- 作ったシステムが正しく安全に動くことを，どのように確かめるか．
+- AI，センサ，画像，音声などを利用して，実世界の問題をどう解決するか．
+
+研究の方法は一つではありません．数学や論理を用いて性質を明らかにする研究，アルゴリズムを考える研究，ソフトウェアやデバイスを実装して評価する研究などがあります．
+
+卒業研究テーマは，学生自身の興味に合わせて幅広く展開しています．学生本人が提案したテーマをベースにして，実現可能性や研究としての新しさなどを検討し，教員が提案したテーマも候補に含めつつ相談して決めていきます．
+
+
+### 2025年度の卒業研究テーマ
+
+<details class="pixel-details" markdown="1">
+<summary>2025年度の卒業研究テーマを見る</summary>
+<div class="pixel-theme-list" markdown="1">
+
+- セマンティックセグメンテーションによる解析を用いた写真の構図改善アドバイスシステムの提案
+- バスケットボールにおける加速度センサを用いたシュート時の接触判定補助システムの提案
+- アーチェリーにおける姿勢推定と的中位置からの姿勢改善フィードバックシステムの構築
+- 不完全情報を保持した透明型二者間複製キューの形式的定義と正当性証明
+- 三者間モデルにおけるデータ共有の枠組みの提案と完全性の定義
+- 否定選択演算と和差集合演算を含む問合せに相当する双方向変換が関数従属性に対して整合性を持つための必要十分条件
+- デバイス内蔵カメラを用いた視線動作による個人認証システムの提案と評価
+- 特徴量の相関グラフを用いた再構成誤差に基づくネットワーク異常検知
+- エレキベースの音声波形からの歪みエフェクターのブランド自動識別に関する研究
+
+</div>
+</details>
+
+理論寄りのテーマからスポーツや音楽など身近な題材を扱うテーマまで，幅広く取り組んでいます．
+
+</section>
+
+<section class="pixel-section" markdown="1">
+
+## 研究室生活
+{:#life}
+
+石原研究室では，物事を筋道立てて考える**サイエンス（理学）**と，実際にシステムを設計・開発する**エンジニアリング（工学）**の両方を大切にしています．
+
+<div class="pixel-study-stage" markdown="1">
+
+### 3年次演習の流れ
+
+前半・後半の2つのフェーズに分かれています．
+
+<details class="pixel-details" markdown="1">
+<summary>3年次演習について見る</summary>
+<div markdown="1">
+
+**前半：サイエンスフェーズ**
+
+情報工学の基礎をなす離散数学について英語で書かれたテキストを輪講形式で読み進めます．今後研究室で技術的な議論を行う上での共通の語彙を確認・構築し，あわせて英語の技術文書に慣れることを目指します．
+
+**後半：エンジニアリングフェーズ**
+
+安全なWebサービスを自分たちで設計し，その開発を行います．Webサーバ，Webアプリケーション，データベースサーバが通信により連動して動作するしくみについて，実際に手を動かして学びます．
+
+</div>
+</details>
+
+</div>
+
+### 研究室の雰囲気
+
+学生は各自のペースで課題に取り組みつつ，互いに相談しあえる雰囲気があります．大学院生も含めたすべての学生が同じ部屋で過ごしており，学年を超えた交流も行われています．
+
+### こんな人が向いています
+
+- 物事をきちんと，筋道を立てて考えることが好きな人
+- 作るだけでなく，「なぜ正しく動くのか」も考えたい人
+- 議論やフィードバックをポジティブに受け止めて成長できる人
+- 「一生懸命に取り組む」こと自体を楽しめる人
+
+### 高校生のみなさんへ
+
+**情報工学は，単にプログラムを作るための学問ではありません．**
+
+- 情報をどのように表現するか
+- 大量のデータをどのように管理するか
+- 大切な情報を守りながら，必要な人と共有するにはどうすればよいか
+- コンピュータに，人が本当に望んでいる処理をどう伝えるか
+
+こうした問いについて，数学，論理学，プログラミング，AIなどを使って解決を目指します．
+
+石原研究室をはじめ電子情報工学科の各研究室では，理論的にじっくり考える研究と，実際にシステムを作って試す研究の両方に取り組んでいます．入学時点で，すでに高度なプログラミング能力を身につけている必要はありません．**物事の仕組みを考えることや，疑問を一つずつ解き明かすことが好きな人を歓迎します．**
+
+</section>
+
+<section class="pixel-section" markdown="1">
+
+## メンバー
+{:#members}
+
+**教員**
+
+- 石原 靖哲（いしはら やすのり）
+  - 担当科目：「線形代数学I」「情報セキュリティI, II」「データベース」など
+  - [【研究業績】](https://porta.nanzan-u.ac.jp/research/view?l=ja&u=103810){:target="_blank" rel="noopener noreferrer"}
+  -  [【researchmap】](https://researchmap.jp/yasunori-ishihara){:target="_blank" rel="noopener noreferrer"}
+
+**学生**
+
+- M2：2名
+- M1：1名
+- B4：11名
+- B3：8名
+
+</section>
+
